@@ -1,1 +1,43 @@
 # audit-scanner-python
+import socket
+from datetime import datetime
+
+# Configuração do alvo e portas críticas frequentemente atacadas (RDP, SMB, FTP, Telnet, SSH)
+ALVO = input("Digite o IP ou domínio do cliente (ex: 192.168.1.1): ")
+PORTAS_CRITICAS = {21: 'FTP', 22: 'SSH', 23: 'Telnet', 445: 'SMB', 3389: 'RDP'}
+
+def escanear_portas(ip, portas):
+    abertas = []
+    for porta, servico in portas.items():
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        resultado = sock.connect_ex((ip, porta))
+        if resultado == 0:
+            abertas.append((porta, servico))
+        sock.close()
+    return abertas
+
+def gerar_relatorio(ip, portas_abertas):
+    nome_arquivo = f"Relatorio_Auditoria_{ip.replace('.', '_')}.txt"
+    with open(nome_arquivo, "w", encoding="utf-8") as arquivo:
+        arquivo.write("="*50 + "\n")
+        arquivo.write("RELATÓRIO EXECUTIVO DE SEGURANÇA DE REDE\n")
+        arquivo.write("="*50 + "\n")
+        arquivo.write(f"Data da Auditoria: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n")
+        arquivo.write(f"Alvo Analisado: {ip}\n\n")
+
+        if not portas_abertas:
+            arquivo.write("STATUS: SEGURO. Nenhuma porta crítica exposta detectada.\n")
+        else:
+            arquivo.write("STATUS: ALERTA CRÍTICO DE VULNERABILIDADE\n")
+            arquivo.write("As seguintes portas estão expostas, permitindo ataques diretos e sequestro de dados:\n")
+            for porta, servico in portas_abertas:
+                arquivo.write(f"- Porta {porta} ({servico}) : ABERTA e VULNERÁVEL\n")
+
+        arquivo.write("\nRecomendação: Bloqueio imediato de portas não essenciais no firewall/roteador.\n")
+    return nome_arquivo
+
+print(f"Iniciando varredura no alvo {ALVO}...")
+portas_encontradas = escanear_portas(ALVO, PORTAS_CRITICAS)
+arquivo_gerado = gerar_relatorio(ALVO, portas_encontradas)
+print(f"Auditoria concluída. Relatório salvo como: {arquivo_gerado}")
